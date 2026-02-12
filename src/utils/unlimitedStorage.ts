@@ -1,398 +1,115 @@
-// Unlimited Storage Manager
-// Handles chunked storage, persistent quota, and memory-efficient data operations
-// Designed to handle unlimited notes, tasks, media, and files without crashing
+// Unlimited storage utilities for IndexedDB media and task storage
 
-const CHUNK_SIZE = 500 * 1024; // 500KB chunks for large media
-const MAX_MEMORY_CACHE = 50; // Max items in memory cache
-const DB_NAME = 'nota-unlimited-storage';
-const DB_VERSION = 2;
+const MEDIA_DB_NAME = 'nota-media-db';
+const MEDIA_DB_VERSION = 1;
+const MEDIA_STORE = 'media';
 
-interface StorageChunk {
-  id: string;
-  parentId: string;
-  chunkIndex: number;
-  totalChunks: number;
-  data: string;
-  createdAt: string;
-}
+let mediaDb: IDBDatabase | null = null;
 
-interface StorageMetadata {
-  id: string;
-  type: 'image' | 'audio' | 'note' | 'file';
-  totalSize: number;
-  chunkCount: number;
-  mimeType?: string;
-  createdAt: string;
-}
-
-// LRU Cache for memory management
-class LRUCache<T> {
-  private cache = new Map<string, T>();
-  private maxSize: number;
-
-  constructor(maxSize: number = MAX_MEMORY_CACHE) {
-    this.maxSize = maxSize;
-  }
-
-  get(key: string): T | undefined {
-    const value = this.cache.get(key);
-    if (value !== undefined) {
-      // Move to end (most recently used)
-      this.cache.delete(key);
-      this.cache.set(key, value);
-    }
-    return value;
-  }
-
-  set(key: string, value: T): void {
-    if (this.cache.has(key)) {
-      this.cache.delete(key);
-    } else if (this.cache.size >= this.maxSize) {
-      // Remove least recently used (first item)
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey) {
-        this.cache.delete(firstKey);
-      }
-    }
-    this.cache.set(key, value);
-  }
-
-  delete(key: string): void {
-    this.cache.delete(key);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  size(): number {
-    return this.cache.size;
-  }
-}
-
-// Global caches with memory limits
-const mediaCache = new LRUCache<string>(30);
-const metadataCache = new LRUCache<StorageMetadata>(100);
-
-let dbInstance: IDBDatabase | null = null;
-let persistentStorageGranted = false;
-
-// Request persistent storage for unlimited quota
-export const requestUnlimitedStorage = async (): Promise<boolean> => {
-  try {
-    if (navigator.storage && navigator.storage.persist) {
-      const isPersisted = await navigator.storage.persisted();
-      if (!isPersisted) {
-        persistentStorageGranted = await navigator.storage.persist();
-      } else {
-        persistentStorageGranted = true;
-      }
-    }
-  } catch (e) {
-    console.warn('Persistent storage request failed:', e);
-  }
-  return persistentStorageGranted;
-};
-
-// Initialize on module load
-requestUnlimitedStorage();
-
-const openDB = (): Promise<IDBDatabase> => {
+const openMediaDB = (): Promise<IDBDatabase> => {
+  if (mediaDb) return Promise.resolve(mediaDb);
   return new Promise((resolve, reject) => {
-    if (dbInstance) {
-      resolve(dbInstance);
-      return;
-    }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      dbInstance = request.result;
-      resolve(dbInstance);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-
-      // Store for chunked data
-      if (!db.objectStoreNames.contains('chunks')) {
-        const chunkStore = db.createObjectStore('chunks', { keyPath: 'id' });
-        chunkStore.createIndex('parentId', 'parentId', { unique: false });
-      }
-
-      // Store for metadata
-      if (!db.objectStoreNames.contains('metadata')) {
-        db.createObjectStore('metadata', { keyPath: 'id' });
-      }
-
-      // Store for batch operations queue
-      if (!db.objectStoreNames.contains('queue')) {
-        db.createObjectStore('queue', { keyPath: 'id' });
+    const req = indexedDB.open(MEDIA_DB_NAME, MEDIA_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(MEDIA_STORE)) {
+        db.createObjectStore(MEDIA_STORE);
       }
     };
+    req.onsuccess = () => { mediaDb = req.result; resolve(mediaDb); };
+    req.onerror = () => reject(req.error);
   });
 };
 
-// Split large data into chunks for efficient storage
-const splitIntoChunks = (data: string): string[] => {
-  const chunks: string[] = [];
-  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-    chunks.push(data.slice(i, i + CHUNK_SIZE));
-  }
-  return chunks;
-};
-
-// Store large data in chunks
-export const storeLargeMedia = async (
-  id: string,
-  data: string,
-  type: 'image' | 'audio' | 'file' = 'image',
-  mimeType?: string
-): Promise<boolean> => {
+export const requestUnlimitedStorage = async (): Promise<boolean> => {
   try {
-    const db = await openDB();
-    const chunks = splitIntoChunks(data);
-    
-    const metadata: StorageMetadata = {
-      id,
-      type,
-      totalSize: data.length,
-      chunkCount: chunks.length,
-      mimeType,
-      createdAt: new Date().toISOString(),
-    };
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['chunks', 'metadata'], 'readwrite');
-      const chunkStore = transaction.objectStore('chunks');
-      const metaStore = transaction.objectStore('metadata');
-
-      // Delete existing chunks for this id first
-      const deleteIndex = chunkStore.index('parentId');
-      const deleteRequest = deleteIndex.openCursor(IDBKeyRange.only(id));
-      
-      deleteRequest.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        }
-      };
-
-      // Store metadata
-      metaStore.put(metadata);
-      metadataCache.set(id, metadata);
-
-      // Store chunks
-      chunks.forEach((chunk, index) => {
-        const chunkRecord: StorageChunk = {
-          id: `${id}_chunk_${index}`,
-          parentId: id,
-          chunkIndex: index,
-          totalChunks: chunks.length,
-          data: chunk,
-          createdAt: new Date().toISOString(),
-        };
-        chunkStore.put(chunkRecord);
-      });
-
-      transaction.oncomplete = () => resolve(true);
-      transaction.onerror = () => reject(transaction.error);
-    });
-  } catch (e) {
-    console.error('Failed to store large media:', e);
-    return false;
-  }
+    if (navigator.storage?.persist) {
+      return await navigator.storage.persist();
+    }
+  } catch {}
+  return false;
 };
 
-// Retrieve large data by reassembling chunks
-export const retrieveLargeMedia = async (id: string): Promise<string | null> => {
-  // Check memory cache first
-  const cached = mediaCache.get(id);
-  if (cached) return cached;
-
-  try {
-    const db = await openDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['chunks', 'metadata'], 'readonly');
-      const chunkStore = transaction.objectStore('chunks');
-      const metaStore = transaction.objectStore('metadata');
-
-      // Get metadata first
-      const metaRequest = metaStore.get(id);
-      
-      metaRequest.onsuccess = () => {
-        const metadata = metaRequest.result as StorageMetadata | undefined;
-        if (!metadata) {
-          resolve(null);
-          return;
-        }
-
-        // Get all chunks
-        const chunkIndex = chunkStore.index('parentId');
-        const chunkRequest = chunkIndex.getAll(IDBKeyRange.only(id));
-
-        chunkRequest.onsuccess = () => {
-          const chunks = chunkRequest.result as StorageChunk[];
-          if (chunks.length === 0) {
-            resolve(null);
-            return;
-          }
-
-          // Sort by chunk index and reassemble
-          chunks.sort((a, b) => a.chunkIndex - b.chunkIndex);
-          const fullData = chunks.map(c => c.data).join('');
-
-          // Cache in memory (LRU will evict old items if needed)
-          mediaCache.set(id, fullData);
-          metadataCache.set(id, metadata);
-
-          resolve(fullData);
-        };
-
-        chunkRequest.onerror = () => reject(chunkRequest.error);
-      };
-
-      metaRequest.onerror = () => reject(metaRequest.error);
-    });
-  } catch (e) {
-    console.error('Failed to retrieve large media:', e);
-    return null;
-  }
+export const storeLargeMedia = async (key: string, data: Blob | ArrayBuffer | string, _type?: string): Promise<void> => {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_STORE, 'readwrite');
+    tx.objectStore(MEDIA_STORE).put(data, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 };
 
-// Delete media and its chunks
-export const deleteLargeMedia = async (id: string): Promise<boolean> => {
-  try {
-    const db = await openDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['chunks', 'metadata'], 'readwrite');
-      const chunkStore = transaction.objectStore('chunks');
-      const metaStore = transaction.objectStore('metadata');
-
-      // Delete metadata
-      metaStore.delete(id);
-      metadataCache.delete(id);
-      mediaCache.delete(id);
-
-      // Delete all chunks
-      const index = chunkStore.index('parentId');
-      const request = index.openCursor(IDBKeyRange.only(id));
-
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        }
-      };
-
-      transaction.oncomplete = () => resolve(true);
-      transaction.onerror = () => reject(transaction.error);
-    });
-  } catch (e) {
-    console.error('Failed to delete large media:', e);
-    return false;
-  }
+export const retrieveLargeMedia = async (key: string): Promise<string | null> => {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_STORE, 'readonly');
+    const req = tx.objectStore(MEDIA_STORE).get(key);
+    req.onsuccess = () => resolve((req.result as string) ?? null);
+    req.onerror = () => reject(req.error);
+  });
 };
 
-// Get storage statistics
-export const getStorageStats = async (): Promise<{
-  used: number;
-  available: number;
-  persistent: boolean;
-  itemCount: number;
-}> => {
-  let estimate = { usage: 0, quota: Infinity };
-  
+export const deleteLargeMedia = async (key: string): Promise<void> => {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_STORE, 'readwrite');
+    tx.objectStore(MEDIA_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+export const getStorageStats = async (): Promise<{ used: number; available: number; quota: number; persistent: boolean }> => {
   try {
     if (navigator.storage?.estimate) {
-      estimate = await navigator.storage.estimate() as { usage: number; quota: number };
+      const est = await navigator.storage.estimate();
+      const persistent = navigator.storage?.persist ? await navigator.storage.persisted() : false;
+      return { used: est.usage || 0, available: (est.quota || 0) - (est.usage || 0), quota: est.quota || 0, persistent };
     }
-  } catch (e) {
-    console.warn('Storage estimate failed:', e);
-  }
-
-  // Count items in database
-  let itemCount = 0;
-  try {
-    const db = await openDB();
-    const transaction = db.transaction(['metadata'], 'readonly');
-    const store = transaction.objectStore('metadata');
-    const countRequest = store.count();
-    
-    itemCount = await new Promise<number>((resolve) => {
-      countRequest.onsuccess = () => resolve(countRequest.result);
-      countRequest.onerror = () => resolve(0);
-    });
-  } catch (e) {
-    console.warn('Failed to count items:', e);
-  }
-
-  return {
-    used: estimate.usage || 0,
-    available: persistentStorageGranted ? Infinity : (estimate.quota || 0),
-    persistent: persistentStorageGranted,
-    itemCount,
-  };
+  } catch {}
+  return { used: 0, available: 0, quota: 0, persistent: false };
 };
 
-// Batch save operations with queuing
-let batchQueue: Array<{ id: string; data: string; type: 'image' | 'audio' | 'file' }> = [];
-let batchTimeout: NodeJS.Timeout | null = null;
-
-export const queueMediaSave = (
-  id: string,
-  data: string,
-  type: 'image' | 'audio' | 'file' = 'image'
-): void => {
-  batchQueue.push({ id, data, type });
-  
-  if (batchTimeout) {
-    clearTimeout(batchTimeout);
-  }
-  
-  // Process queue after 200ms of inactivity
-  batchTimeout = setTimeout(async () => {
-    const toProcess = [...batchQueue];
-    batchQueue = [];
-    
-    for (const item of toProcess) {
-      await storeLargeMedia(item.id, item.data, item.type);
-    }
-  }, 200);
-};
-
-// Clear all caches (call when memory is low)
 export const clearMemoryCaches = (): void => {
-  mediaCache.clear();
-  metadataCache.clear();
-  console.log('Memory caches cleared');
+  // No-op for simplified version
 };
 
-// Check if storage is healthy
-export const isStorageHealthy = async (): Promise<boolean> => {
-  try {
-    const stats = await getStorageStats();
-    
-    // If persistent storage is granted, always healthy
-    if (stats.persistent) return true;
-    
-    // Check if more than 90% of quota is used
-    if (stats.available > 0 && stats.used / stats.available > 0.9) {
-      console.warn('Storage usage is over 90%');
-      return false;
-    }
-    
-    return true;
-  } catch (e) {
-    console.error('Storage health check failed:', e);
-    return false;
+export class LRUCache<K, V> {
+  private map = new Map<K, V>();
+  private maxSize: number;
+
+  constructor(maxSize: number) {
+    this.maxSize = maxSize;
   }
-};
 
-// Export cache utilities
-export { LRUCache };
+  get(key: K): V | undefined {
+    const val = this.map.get(key);
+    if (val !== undefined) {
+      this.map.delete(key);
+      this.map.set(key, val);
+    }
+    return val;
+  }
+
+  set(key: K, value: V): void {
+    this.map.delete(key);
+    if (this.map.size >= this.maxSize) {
+      const firstKey = this.map.keys().next().value;
+      if (firstKey !== undefined) this.map.delete(firstKey);
+    }
+    this.map.set(key, value);
+  }
+
+  delete(key: K): boolean {
+    return this.map.delete(key);
+  }
+
+  clear(): void {
+    this.map.clear();
+  }
+
+  get size(): number {
+    return this.map.size;
+  }
+}
