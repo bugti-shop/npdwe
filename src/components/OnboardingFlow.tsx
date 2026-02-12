@@ -59,7 +59,7 @@ export default function OnboardingFlow({
   const [progress, setProgress] = useState(0);
   const [complete, setComplete] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [plan, setPlan] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
+  const [plan, setPlan] = useState<'weekly' | 'monthly' | 'lifetime'>('weekly');
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [adminCode, setAdminCode] = useState('');
@@ -397,28 +397,26 @@ export default function OnboardingFlow({
       );
     };
     
-    const getYearlyPackage = () => {
+    const getLifetimePackage = () => {
       if (!offerings?.current) return null;
       return offerings.current.availablePackages.find(
-        (p: any) => p.packageType === 'ANNUAL' || p.identifier === 'yearly'
+        (p: any) => p.packageType === 'LIFETIME' || p.identifier === 'lifetime'
       );
     };
     
     const monthlyPkg = getMonthlyPackage();
-    const yearlyPkg = getYearlyPackage();
+    const lifetimePkg = getLifetimePackage();
     
     // Hardcoded USD prices for display
     const weeklyPrice = '$2.99/wk';
     const monthlyPrice = '$5.99/mo';
-    const yearlyPrice = '$59.88';
-    const yearlyMonthlyEquivalent = '$4.99/mo';
+    const lifetimePrice = '$95.99';
     const weeklyTrialDays = 1;
-    const yearlyTrialDays = yearlyPkg?.product?.introPrice?.periodNumberOfUnits || PRICING_DISPLAY.yearly.trialDays;
 
     return (
       <div className="min-h-screen bg-white p-6 flex flex-col justify-between" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}>
         <div>
-          <h1 className="text-3xl font-bold text-center mb-6">{t('onboarding.paywall.startTrial', { days: plan === 'weekly' ? weeklyTrialDays : yearlyTrialDays })}</h1>
+          <h1 className="text-3xl font-bold text-center mb-6">{plan === 'lifetime' ? 'Unlock Pro Forever' : t('onboarding.paywall.startTrial', { days: weeklyTrialDays })}</h1>
           <div className="flex flex-col items-start mx-auto w-80 relative">
             {/* Vertical connecting line */}
             <div className="absolute left-[10.5px] top-[20px] bottom-[20px] w-[11px] bg-primary/20 rounded-b-full"></div>
@@ -437,7 +435,7 @@ export default function OnboardingFlow({
                 <Bell size={16} className="text-primary-foreground" strokeWidth={2} />
               </div>
               <div>
-                <p className="font-semibold">{t('onboarding.paywall.reminderDay', { days: (plan === 'weekly' ? weeklyTrialDays : yearlyTrialDays) - 1 })}</p>
+                <p className="font-semibold">{t('onboarding.paywall.reminderDay', { days: (weeklyTrialDays) - 1 })}</p>
                 <p className="text-gray-500 text-sm">{t('onboarding.paywall.reminderDesc')}</p>
               </div>
             </div>
@@ -446,8 +444,8 @@ export default function OnboardingFlow({
                 <Crown size={16} className="text-primary-foreground" strokeWidth={2} />
               </div>
               <div>
-                <p className="font-semibold">{t('onboarding.paywall.billingDay', { days: plan === 'weekly' ? weeklyTrialDays : yearlyTrialDays })}</p>
-                <p className="text-gray-500 text-sm">{t('onboarding.paywall.billingDesc', { days: plan === 'weekly' ? weeklyTrialDays : yearlyTrialDays })}</p>
+                <p className="font-semibold">{t('onboarding.paywall.billingDay', { days: weeklyTrialDays })}</p>
+                <p className="text-gray-500 text-sm">{t('onboarding.paywall.billingDesc', { days: weeklyTrialDays })}</p>
               </div>
             </div>
           </div>
@@ -475,21 +473,21 @@ export default function OnboardingFlow({
                 <p className="text-muted-foreground text-xs mt-0.5">{monthlyPrice}</p>
               </button>
 
-              {/* Yearly Option */}
-              <button onClick={() => { triggerHaptic('heavy'); setPlan('yearly'); }} className={`border-2 rounded-xl p-3 flex-1 text-center relative flex flex-col items-center justify-center min-h-[70px] ${plan === 'yearly' ? 'border-primary' : 'border-border'}`}>
+              {/* Lifetime Option */}
+              <button onClick={() => { triggerHaptic('heavy'); setPlan('lifetime'); }} className={`border-2 rounded-xl p-3 flex-1 text-center relative flex flex-col items-center justify-center min-h-[70px] ${plan === 'lifetime' ? 'border-primary' : 'border-border'}`}>
                 <span className="bg-primary text-primary-foreground text-[10px] px-2 py-0.5 rounded-full absolute left-1/2 -translate-x-1/2 -top-2.5 whitespace-nowrap font-medium">
-                  {t('onboarding.paywall.daysFree', { days: yearlyTrialDays })}
+                  BEST VALUE
                 </span>
-                <p className="font-bold text-sm">{t('onboarding.paywall.yearly')}</p>
-                <p className="text-gray-600 text-xs mt-0.5">{yearlyMonthlyEquivalent}</p>
+                <p className="font-bold text-sm">Lifetime</p>
+                <p className="text-gray-600 text-xs mt-0.5">{lifetimePrice}</p>
               </button>
             </div>
           )}
 
             <div className="flex flex-col items-center gap-2">
-              {plan === 'yearly' && !isLoadingOfferings && (
-                <p className="text-gray-500 text-sm mt-2">
-                  {t('onboarding.paywall.trialThen', { days: yearlyTrialDays, price: yearlyPrice, monthlyEquivalent: yearlyMonthlyEquivalent })}
+              {plan === 'lifetime' && !isLoadingOfferings && (
+                <p className="text-gray-500 text-xs mt-2 text-center max-w-xs">
+                  One-time payment. Does not include Location Based Reminders or future API features.
                 </p>
               )}
 
@@ -565,7 +563,7 @@ export default function OnboardingFlow({
                     ? t('onboarding.paywall.continueWithPrice', { price: '$2.99' })
                     : plan === 'monthly' 
                       ? 'Start My 3 Days Free Trial' 
-                      : t('onboarding.paywall.startTrialButton', { days: PRICING_DISPLAY.yearly.trialDays })
+                      : `Get Lifetime for ${lifetimePrice}`
                 )}
               </button>
 

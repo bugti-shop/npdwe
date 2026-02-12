@@ -17,10 +17,10 @@ export const BILLING_CONFIG = {
     basePlanId: 'npd-mo',
     offerId: 'npd-monthly-offer',
   },
-  yearly: {
-    productId: 'yearly',
-    basePlanId: 'npd-yearly-plan',
-    offerId: 'npd-yearly-trial',
+  lifetime: {
+    productId: 'lifetime',
+    basePlanId: 'npd-lifetime-plan',
+    offerId: '',
   },
 } as const;
 
@@ -45,16 +45,15 @@ export const PRICING_DISPLAY = {
     trialDays: 1,
   },
   monthly: {
-    price: '$4.99',
+    price: '$5.99',
     period: 'month',
-    displayPrice: '$4.99/mo',
+    displayPrice: '$5.99/mo',
   },
-  yearly: {
-    price: '$35.88',
-    period: 'year',
-    monthlyEquivalent: '$2.99/mo',
-    displayPrice: '$2.99/mo',
-    trialDays: 3,
+  lifetime: {
+    price: '$95.99',
+    period: 'lifetime',
+    displayPrice: '$95.99',
+    note: 'One-time payment',
   },
 } as const;
 

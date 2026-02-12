@@ -10,7 +10,7 @@ import { useHardwareBackButton } from '@/hooks/useHardwareBackButton';
 export const PremiumPaywall = () => {
   const { t } = useTranslation();
   const { showPaywall, closePaywall, unlockPro } = useSubscription();
-  const [plan, setPlan] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
+  const [plan, setPlan] = useState<'weekly' | 'monthly' | 'lifetime'>('weekly');
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [adminCode, setAdminCode] = useState('');
@@ -27,8 +27,7 @@ export const PremiumPaywall = () => {
 
   const weeklyPrice = '$2.99/wk';
   const monthlyPrice = '$5.99/mo';
-  const yearlyPrice = '$59.88';
-  const yearlyMonthlyEquivalent = '$4.99/mo';
+  const lifetimePrice = '$95.99';
 
   const handlePurchase = async () => {
     setIsPurchasing(true);
@@ -43,7 +42,7 @@ export const PremiumPaywall = () => {
           ? PACKAGE_TYPE.MONTHLY 
           : plan === 'weekly' 
             ? PACKAGE_TYPE.WEEKLY 
-            : PACKAGE_TYPE.ANNUAL;
+            : PACKAGE_TYPE.LIFETIME;
         
         let pkg = offerings.current.availablePackages.find(p => p.packageType === packageType);
         if (!pkg) pkg = offerings.current.availablePackages.find(p => p.identifier === plan);
@@ -174,16 +173,22 @@ export const PremiumPaywall = () => {
             </button>
 
             <button 
-              onClick={() => { triggerHaptic('heavy'); setPlan('yearly'); }} 
-              className={`border-2 rounded-xl p-3 flex-1 text-center relative flex flex-col items-center justify-center min-h-[70px] ${plan === 'yearly' ? 'border-[#3c78f0]' : 'border-gray-200'}`}
+              onClick={() => { triggerHaptic('heavy'); setPlan('lifetime'); }} 
+              className={`border-2 rounded-xl p-3 flex-1 text-center relative flex flex-col items-center justify-center min-h-[70px] ${plan === 'lifetime' ? 'border-[#3c78f0]' : 'border-gray-200'}`}
             >
               <span className="bg-[#3c78f0] text-white text-[10px] px-2 py-0.5 rounded-full absolute left-1/2 -translate-x-1/2 -top-2.5 whitespace-nowrap font-medium">
                 BEST VALUE
               </span>
-              <p className="font-bold text-sm">Yearly</p>
-              <p className="text-gray-600 text-xs mt-0.5">{yearlyMonthlyEquivalent}</p>
+              <p className="font-bold text-sm">Lifetime</p>
+              <p className="text-gray-600 text-xs mt-0.5">{lifetimePrice}</p>
             </button>
           </div>
+
+          {plan === 'lifetime' && (
+            <p className="text-gray-400 text-xs text-center max-w-xs mt-2">
+              One-time payment. Does not include Location Based Reminders or future API features.
+            </p>
+          )}
 
           <div className="flex flex-col items-center gap-2">
             <button 
@@ -194,7 +199,7 @@ export const PremiumPaywall = () => {
               {isPurchasing ? 'Processing...' : (
                 plan === 'weekly' ? `Continue with ${weeklyPrice}` :
                 plan === 'monthly' ? `Continue with ${monthlyPrice}` :
-                `Continue with ${yearlyMonthlyEquivalent}`
+                `Get Lifetime for ${lifetimePrice}`
               )}
             </button>
 
