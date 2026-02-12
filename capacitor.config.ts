@@ -14,6 +14,11 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: true,
+    webContentsDebuggingEnabled: false,
+    zoomEnabled: true,
+  },
+  ios: {
+    scrollEnabled: true,
   },
 };
 
