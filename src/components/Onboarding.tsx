@@ -45,7 +45,7 @@ const questions: OnboardingQuestion[] = [
       { icon: FileText, label: "Quick bullet points", value: "bullets" },
       { icon: Palette, label: "Detailed paragraphs", value: "detailed" },
       { icon: Clock, label: "Voice recordings", value: "voice" },
-      { icon: FolderTree, label: "Sketches and drawings", value: "sketches" },
+      { icon: FolderTree, label: "Tables and structured notes", value: "tables" },
     ],
   },
   {
