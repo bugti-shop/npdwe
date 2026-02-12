@@ -9,7 +9,7 @@ import featureHome from '@/assets/feature-home.png';
 import featureNotes from '@/assets/feature-notes.png';
 import featureNotesTypes from '@/assets/feature-notes-types.png';
 import featureEditor from '@/assets/feature-editor.png';
-import featureSketch from '@/assets/feature-sketch.png';
+
 import featureFontStyling from '@/assets/feature-font-styling.png';
 import featureStickyNotes from '@/assets/feature-sticky-notes.png';
 import featureCodeEditor from '@/assets/feature-code-editor.png';
@@ -93,7 +93,7 @@ export default function OnboardingFlow({
 
   // Preload all images immediately with high priority for instant rendering
   useEffect(() => {
-    const imagesToPreload = [featureHome, featureNotes, featureNotesTypes, featureEditor, featureSketch, featureFontStyling, featureStickyNotes, featureCodeEditor, featureThemeDark, featureThemeGreen, featureThemeForest, featureThemeBrown, featureThemeLight, featureTables, featureMedia, featureFolders, featureTaskInput, featureTaskList, featurePriority, featureOptions, featureDragDrop, featurePriorityFolders, featureCustomActions, featureSubtasksTracking, featureCompletedTasks, featureDateTime, featureBatchActions, featureMultipleTasks, featureProductivityTools, featureSwipeComplete, featureSwipeDelete, showcaseFolders, showcaseAvatars];
+    const imagesToPreload = [featureHome, featureNotes, featureNotesTypes, featureEditor, featureFontStyling, featureStickyNotes, featureCodeEditor, featureThemeDark, featureThemeGreen, featureThemeForest, featureThemeBrown, featureThemeLight, featureTables, featureMedia, featureFolders, featureTaskInput, featureTaskList, featurePriority, featureOptions, featureDragDrop, featurePriorityFolders, featureCustomActions, featureSubtasksTracking, featureCompletedTasks, featureDateTime, featureBatchActions, featureMultipleTasks, featureProductivityTools, featureSwipeComplete, featureSwipeDelete, showcaseFolders, showcaseAvatars];
     
     // Use Promise.all for parallel loading
     const loadPromises = imagesToPreload.map(src => {
@@ -230,7 +230,8 @@ export default function OnboardingFlow({
     triggerHaptic('heavy');
     if (step < 32) {
       setSwipeDirection('left');
-      setStep(step + 1);
+      // Skip removed step 8 (sketch)
+      setStep(step === 7 ? 9 : step + 1);
     }
   };
 
@@ -242,7 +243,8 @@ export default function OnboardingFlow({
       setShowWelcome(true);
     } else if (step > 1) {
       setSwipeDirection('right');
-      setStep(step - 1);
+      // Skip removed step 8 (sketch)
+      setStep(step === 9 ? 7 : step - 1);
     }
   };
 
@@ -843,28 +845,7 @@ export default function OnboardingFlow({
             </motion.section>
           )}
 
-          {step === 8 && (
-            <motion.section 
-              key="step8"
-              custom={swipeDirection}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="mt-6 text-center flex flex-col items-center relative"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('onboarding.features.sketchIdeas')}</h1>
-              <p className="text-gray-500 text-sm mb-3">{t('onboarding.features.sketchIdeasDesc')}</p>
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-2xl blur-xl opacity-50"></div>
-                <img src={featureSketch} alt={t('onboarding.features.sketchIdeas')} loading="eager" decoding="async" className="w-[240px] h-auto object-contain relative z-10 rounded-2xl shadow-lg" />
-              </div>
-            </motion.section>
-          )}
+          {/* Step 8 - Sketch removed */}
 
           {step === 9 && (
             <motion.section 
