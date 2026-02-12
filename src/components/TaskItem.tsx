@@ -460,7 +460,7 @@ export const TaskItem = memo(({
           {/* Main task - flat layout */}
           <div
             className={cn(
-              "flex items-center gap-3 py-2.5 px-2 cursor-pointer select-none bg-background",
+              "flex items-start gap-3 py-2.5 px-2 cursor-pointer select-none bg-background",
               !hidePriorityBorder && "border-l-4",
               isSelected && "bg-primary/5",
               level > 0 && "mr-2",
@@ -487,7 +487,7 @@ export const TaskItem = memo(({
               />
             )}
           
-          <div className="relative flex items-center flex-shrink-0">
+          <div className="relative flex items-center flex-shrink-0 mt-0.5">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -666,7 +666,7 @@ export const TaskItem = memo(({
             )}
             
             {/* Indicators */}
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {((item.repeatType && item.repeatType !== 'none') || hasDependencies || (hasSubtasks && !isOpen)) && <div className="flex items-center gap-2 mt-1 flex-wrap">
               {item.repeatType && item.repeatType !== 'none' && (
                 <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-accent-purple/20 text-accent-purple">
                   <Repeat className="h-2.5 w-2.5" />
@@ -685,7 +685,7 @@ export const TaskItem = memo(({
               {hasSubtasks && !isOpen && (
                 <p className="text-xs text-muted-foreground">{item.subtasks!.filter(st => st.completed).length}/{item.subtasks!.length} {t('tasks.subtasks', 'subtasks')}</p>
               )}
-            </div>
+            </div>}
           </div>
 
           {item.imageUrl && (
