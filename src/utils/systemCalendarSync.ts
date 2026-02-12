@@ -1,0 +1,296 @@
+/**
+ * Bidirectional sync between app tasks/events and the device's native calendar.
+ * Uses @ebarooni/capacitor-calendar (v8) for Capacitor 8.
+ *
+ * ── Outbound (App → System Calendar) ──
+ *   • Every task with a dueDate or event is pushed to the native calendar.
+ *   • The native event ID is stored in the task/event's `googleCalendarEventId` field.
+ *
+ * ── Inbound (System Calendar → App) ──
+ *   • Events fetched from the native calendar that don't already exist in the app
+ *     are surfaced as CalendarEvent objects.
+ */
+
+import { Capacitor } from '@capacitor/core';
+import { TodoItem, CalendarEvent as AppCalendarEvent } from '@/types/note';
+import { getSetting, setSetting } from './settingsStorage';
+
+// ─── Types ───────────────────────────────────────────────────────
+export interface SystemCalendarSyncResult {
+  pushed: number;
+  pulled: number;
+  errors: string[];
+}
+
+// ─── Guard: only run on native ──────────────────────────────────
+const isNative = () => Capacitor.isNativePlatform();
+
+// ─── Lazy import the plugin (avoids web crash) ──────────────────
+const getPlugin = async () => {
+  const mod = await import('@ebarooni/capacitor-calendar');
+  return mod.CapacitorCalendar;
+};
+
+// ─── Permissions ─────────────────────────────────────────────────
+export const requestCalendarPermissions = async (): Promise<boolean> => {
+  if (!isNative()) return false;
+  try {
+    const cal = await getPlugin();
+    const { result } = await cal.requestFullCalendarAccess();
+    return result === 'granted';
+  } catch (e) {
+    console.error('Calendar permission error:', e);
+    return false;
+  }
+};
+
+export const checkCalendarPermissions = async (): Promise<boolean> => {
+  if (!isNative()) return false;
+  try {
+    const { CalendarPermissionScope } = await import('@ebarooni/capacitor-calendar');
+    const cal = await getPlugin();
+    const read = await cal.checkPermission({ scope: CalendarPermissionScope.READ_CALENDAR });
+    const write = await cal.checkPermission({ scope: CalendarPermissionScope.WRITE_CALENDAR });
+    return read.result === 'granted' && write.result === 'granted';
+  } catch {
+    return false;
+  }
+};
+
+// ─── Sync enable/disable setting ─────────────────────────────────
+const SYNC_ENABLED_KEY = 'systemCalendarSyncEnabled';
+const SYNC_MAP_KEY = 'systemCalendarSyncMap'; // maps app id → native event id
+
+export const isCalendarSyncEnabled = () => getSetting<boolean>(SYNC_ENABLED_KEY, false);
+export const setCalendarSyncEnabled = (v: boolean) => setSetting(SYNC_ENABLED_KEY, v);
+
+type SyncMap = Record<string, string>; // appId → nativeEventId
+const loadSyncMap = () => getSetting<SyncMap>(SYNC_MAP_KEY, {});
+const saveSyncMap = (m: SyncMap) => setSetting(SYNC_MAP_KEY, m);
+
+// ─── Reminder offset helper ─────────────────────────────────────
+const reminderToMinutes = (reminder?: string): number[] => {
+  switch (reminder) {
+    case '5min': return [-5];
+    case '10min': return [-10];
+    case '15min': return [-15];
+    case '30min': return [-30];
+    case '1hour': return [-60];
+    case '1day': return [-1440];
+    default: return [-15]; // default 15 min before
+  }
+};
+
+// ─── Push a single task to native calendar ───────────────────────
+export const pushTaskToNativeCalendar = async (task: TodoItem): Promise<string | null> => {
+  if (!isNative() || !task.dueDate) return null;
+  try {
+    const cal = await getPlugin();
+    const syncMap = await loadSyncMap();
+    const existingId = syncMap[task.id];
+
+    const startDate = new Date(task.dueDate).getTime();
+    const endDate = startDate + 60 * 60 * 1000; // 1 hour default duration
+
+    const eventData = {
+      title: task.text,
+      startDate,
+      endDate,
+      description: task.description || '',
+      location: task.location || '',
+      isAllDay: false,
+      alerts: task.reminderTime ? reminderToMinutes() : [-15],
+    };
+
+    if (existingId) {
+      // Update existing event
+      try {
+        await cal.modifyEvent({ id: existingId, ...eventData });
+      } catch {
+        // If modify fails (event deleted externally), create new
+        const { id } = await cal.createEvent(eventData);
+        syncMap[task.id] = id;
+        await saveSyncMap(syncMap);
+        return id;
+      }
+      return existingId;
+    } else {
+      // Create new event
+      const { id } = await cal.createEvent(eventData);
+      syncMap[task.id] = id;
+      await saveSyncMap(syncMap);
+      return id;
+    }
+  } catch (e) {
+    console.error('Failed to push task to native calendar:', e);
+    return null;
+  }
+};
+
+// ─── Push an app CalendarEvent to native calendar ────────────────
+export const pushEventToNativeCalendar = async (event: AppCalendarEvent): Promise<string | null> => {
+  if (!isNative()) return null;
+  try {
+    const cal = await getPlugin();
+    const syncMap = await loadSyncMap();
+    const existingId = syncMap[event.id];
+
+    const eventData = {
+      title: event.title,
+      startDate: new Date(event.startDate).getTime(),
+      endDate: new Date(event.endDate).getTime(),
+      description: event.description || '',
+      location: event.location || '',
+      isAllDay: event.allDay,
+      alerts: reminderToMinutes(event.reminder),
+    };
+
+    if (existingId) {
+      try {
+        await cal.modifyEvent({ id: existingId, ...eventData });
+      } catch {
+        const { id } = await cal.createEvent(eventData);
+        syncMap[event.id] = id;
+        await saveSyncMap(syncMap);
+        return id;
+      }
+      return existingId;
+    } else {
+      const { id } = await cal.createEvent(eventData);
+      syncMap[event.id] = id;
+      await saveSyncMap(syncMap);
+      return id;
+    }
+  } catch (e) {
+    console.error('Failed to push event to native calendar:', e);
+    return null;
+  }
+};
+
+// ─── Remove a task/event from native calendar ────────────────────
+export const removeFromNativeCalendar = async (appId: string): Promise<void> => {
+  if (!isNative()) return;
+  try {
+    const cal = await getPlugin();
+    const syncMap = await loadSyncMap();
+    const nativeId = syncMap[appId];
+    if (nativeId) {
+      await cal.deleteEvent({ id: nativeId }).catch(() => {});
+      delete syncMap[appId];
+      await saveSyncMap(syncMap);
+    }
+  } catch (e) {
+    console.error('Failed to remove from native calendar:', e);
+  }
+};
+
+// ─── Pull events from native calendar into app ──────────────────
+export const pullFromNativeCalendar = async (
+  daysAhead = 30,
+  daysBehind = 7,
+): Promise<AppCalendarEvent[]> => {
+  if (!isNative()) return [];
+  try {
+    const cal = await getPlugin();
+    const now = Date.now();
+    const from = now - daysBehind * 24 * 60 * 60 * 1000;
+    const to = now + daysAhead * 24 * 60 * 60 * 1000;
+
+    const { result } = await cal.listEventsInRange({ from, to });
+    const syncMap = await loadSyncMap();
+    const nativeIdSet = new Set(Object.values(syncMap));
+
+    // Filter out events that we pushed ourselves
+    const externalEvents = result.filter(e => !nativeIdSet.has(e.id));
+
+    return externalEvents.map(e => ({
+      id: `native_${e.id}`,
+      title: e.title || 'Untitled',
+      description: e.description || undefined,
+      location: e.location || undefined,
+      allDay: e.isAllDay ?? false,
+      startDate: new Date(e.startDate),
+      endDate: new Date(e.endDate),
+      timezone: e.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      repeat: 'never' as const,
+      reminder: 'at_time' as const,
+      createdAt: e.creationDate ? new Date(e.creationDate) : new Date(),
+      updatedAt: e.lastModifiedDate ? new Date(e.lastModifiedDate) : new Date(),
+    }));
+  } catch (e) {
+    console.error('Failed to pull from native calendar:', e);
+    return [];
+  }
+};
+
+// ─── Full bidirectional sync ─────────────────────────────────────
+export const performFullCalendarSync = async (
+  tasks: TodoItem[],
+  appEvents: AppCalendarEvent[],
+): Promise<SystemCalendarSyncResult> => {
+  const result: SystemCalendarSyncResult = { pushed: 0, pulled: 0, errors: [] };
+
+  if (!isNative()) return result;
+
+  const enabled = await isCalendarSyncEnabled();
+  if (!enabled) return result;
+
+  const hasPermission = await checkCalendarPermissions();
+  if (!hasPermission) {
+    result.errors.push('Calendar permissions not granted');
+    return result;
+  }
+
+  // ── Push tasks with due dates ──
+  const tasksWithDates = tasks.filter(t => t.dueDate && !t.completed);
+  for (const task of tasksWithDates) {
+    try {
+      await pushTaskToNativeCalendar(task);
+      result.pushed++;
+    } catch (e: any) {
+      result.errors.push(`Task "${task.text}": ${e.message}`);
+    }
+  }
+
+  // ── Push app calendar events ──
+  for (const event of appEvents) {
+    try {
+      await pushEventToNativeCalendar(event);
+      result.pushed++;
+    } catch (e: any) {
+      result.errors.push(`Event "${event.title}": ${e.message}`);
+    }
+  }
+
+  // ── Pull from native calendar ──
+  const pulledEvents = await pullFromNativeCalendar();
+  const existingAppEvents = await getSetting<AppCalendarEvent[]>('calendarEvents', []);
+  const existingIds = new Set(existingAppEvents.map(e => e.id));
+
+  const newEvents = pulledEvents.filter(e => !existingIds.has(e.id));
+  if (newEvents.length > 0) {
+    const merged = [...existingAppEvents, ...newEvents];
+    await setSetting('calendarEvents', merged);
+    result.pulled = newEvents.length;
+    // Notify UI
+    window.dispatchEvent(new CustomEvent('calendarEventsUpdated'));
+  }
+
+  return result;
+};
+
+// ─── Initialize: request permissions + initial sync ──────────────
+export const initializeCalendarSync = async (): Promise<void> => {
+  if (!isNative()) return;
+
+  const enabled = await isCalendarSyncEnabled();
+  if (!enabled) return;
+
+  const granted = await requestCalendarPermissions();
+  if (!granted) {
+    console.warn('Calendar permissions not granted, disabling sync');
+    return;
+  }
+
+  console.log('System calendar sync initialized');
+};

@@ -74,7 +74,7 @@ const TodoSettings = () => {
   const [dailyDigestEnabled, setDailyDigestEnabled] = useState(false);
   const [overdueAlertsEnabled, setOverdueAlertsEnabled] = useState(true);
   const [persistentNotificationEnabled, setPersistentNotificationEnabled] = useState(false);
-
+  const [calendarSyncEnabled, setCalendarSyncEnabled] = useState(false);
   const currentLanguage = languages.find(l => l.code === i18n.language) || languages[0];
 
   // Load settings
@@ -84,6 +84,7 @@ const TodoSettings = () => {
     getSetting<boolean>('dailyDigestEnabled', false).then(setDailyDigestEnabled);
     getSetting<boolean>('overdueAlertsEnabled', true).then(setOverdueAlertsEnabled);
     persistentNotificationManager.isEnabled().then(setPersistentNotificationEnabled);
+    getSetting<boolean>('systemCalendarSyncEnabled', false).then(setCalendarSyncEnabled);
   }, []);
 
   const handleLanguageChange = async (langCode: string) => {
@@ -116,6 +117,30 @@ const TodoSettings = () => {
     setOverdueAlertsEnabled(enabled);
     await setSetting('overdueAlertsEnabled', enabled);
     toast.success(enabled ? t('settings.overdueAlertsEnabled', 'Overdue alerts enabled') : t('settings.overdueAlertsDisabled', 'Overdue alerts disabled'));
+  };
+
+  const handleCalendarSyncToggle = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        const { requestCalendarPermissions, setCalendarSyncEnabled: setSync } = await import('@/utils/systemCalendarSync');
+        const granted = await requestCalendarPermissions();
+        if (!granted) {
+          toast.error(t('settings.calendarPermissionDenied', 'Calendar permission denied. Please grant access in device settings.'));
+          return;
+        }
+        await setSync(true);
+        setCalendarSyncEnabled(true);
+        toast.success(t('settings.calendarSyncEnabled', 'System calendar sync enabled'));
+      } else {
+        const { setCalendarSyncEnabled: setSync } = await import('@/utils/systemCalendarSync');
+        await setSync(false);
+        setCalendarSyncEnabled(false);
+        toast.success(t('settings.calendarSyncDisabled', 'System calendar sync disabled'));
+      }
+    } catch (error) {
+      console.error('Error toggling calendar sync:', error);
+      toast.error(t('errors.calendarSyncFailed', 'Failed to toggle calendar sync'));
+    }
   };
 
   const handlePersistentNotificationToggle = async (enabled: boolean) => {
@@ -335,7 +360,7 @@ const TodoSettings = () => {
                   </div>
                   <Switch checked={dailyDigestEnabled} onCheckedChange={handleDailyDigestToggle} />
                 </div>
-                <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
                   <div className="flex-1 pr-4">
                     <span className="text-foreground text-sm block">{t('settings.overdueAlerts', 'Overdue Alerts')}</span>
                     <span className="text-xs text-muted-foreground">
@@ -344,6 +369,21 @@ const TodoSettings = () => {
                   </div>
                   <Switch checked={overdueAlertsEnabled} onCheckedChange={handleOverdueAlertsToggle} />
                 </div>
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex-1 pr-4">
+                    <span className="text-foreground text-sm block">📅 {t('settings.calendarSync', 'System Calendar Sync')}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t('settings.calendarSyncDesc', 'Sync tasks & events with your device calendar')}
+                    </span>
+                  </div>
+                  <Switch checked={calendarSyncEnabled} onCheckedChange={handleCalendarSyncToggle} />
+                </div>
+                {calendarSyncEnabled && (
+                  <div className="px-4 py-3 text-xs text-muted-foreground bg-muted/30">
+                    <p>🔄 Tasks with due dates appear in your system calendar</p>
+                    <p className="mt-1">📲 Device calendar events sync into this app</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
