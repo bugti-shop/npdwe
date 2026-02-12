@@ -65,6 +65,7 @@ import { SaveSmartViewSheet } from '@/components/SaveSmartViewSheet';
 
 import { AutoScheduleSheet } from '@/components/AutoScheduleSheet';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { TASK_CIRCLE, TASK_CHECK_ICON } from '@/utils/taskItemStyles';
 
 type ViewMode = 'flat' | 'kanban' | 'kanban-status' | 'timeline' | 'progress' | 'priority' | 'history';
 type SortBy = 'date' | 'priority' | 'name' | 'created';
@@ -1429,10 +1430,11 @@ const Today = () => {
                 }, 760);
               }}
               className={cn(
-                "flex-shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300 -mt-0.5",
-                compactMode ? "h-5 w-5" : "h-6 w-6",
-                item.completed && "border-0 bg-muted-foreground/30",
-                pendingCompleteId === item.id && "border-0 scale-110",
+                TASK_CIRCLE.base,
+                TASK_CIRCLE.marginTop,
+                compactMode ? TASK_CIRCLE.sizeCompact : TASK_CIRCLE.size,
+                item.completed && TASK_CIRCLE.completed,
+                pendingCompleteId === item.id && TASK_CIRCLE.pending,
               )}
               style={{
                 borderColor: (item.completed || pendingCompleteId === item.id) ? undefined : getPriorityColor(item.priority || 'none'),
@@ -1442,16 +1444,16 @@ const Today = () => {
               {(item.completed || pendingCompleteId === item.id) && (
                 <Check 
                   className={cn(
-                    "transition-all duration-200",
-                    compactMode ? "h-2.5 w-2.5" : "h-3 w-3",
-                    pendingCompleteId === item.id && "animate-in zoom-in-50"
+                    TASK_CHECK_ICON.base,
+                    compactMode ? TASK_CHECK_ICON.sizeCompact : TASK_CHECK_ICON.size,
+                    pendingCompleteId === item.id && TASK_CHECK_ICON.pendingAnimation
                   )} 
                   style={{ 
                     color: pendingCompleteId === item.id 
-                      ? '#fff' 
-                      : 'hsl(var(--muted-foreground) / 0.5)'
+                      ? TASK_CHECK_ICON.pendingColor
+                      : TASK_CHECK_ICON.completedColor
                   }}
-                  strokeWidth={3}
+                  strokeWidth={TASK_CHECK_ICON.strokeWidth}
                 />
               )}
             </button>

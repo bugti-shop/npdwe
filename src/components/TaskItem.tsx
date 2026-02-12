@@ -8,6 +8,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { WaveformProgressBar } from './WaveformProgressBar';
 import { canCompleteTask } from './TaskDependencySheet';
 import { getRepeatLabel } from '@/utils/recurringTasks';
+import { TASK_CIRCLE, TASK_CHECK_ICON, TASK_COMPLETION_DELAY, TASK_HAPTIC_DOUBLE_TAP_DELAY } from '@/utils/taskItemStyles';
 import { ResolvedTaskImage } from './ResolvedTaskImage';
 import { resolveTaskMediaUrl } from '@/utils/todoItemsStorage';
 import { TaskStatusBadge } from './TaskStatusBadge';
@@ -487,7 +488,7 @@ export const TaskItem = memo(({
               />
             )}
           
-          <div className="relative flex items-center flex-shrink-0 -mt-0.5">
+          <div className={cn("relative flex items-center flex-shrink-0", TASK_CIRCLE.marginTop)}>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -525,10 +526,11 @@ export const TaskItem = memo(({
                         }, 400);
                       }}
                       className={cn(
-                        "h-6 w-6 flex-shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300",
-                        item.completed && "border-0 bg-muted-foreground/30",
-                        pendingComplete && "border-0 scale-110",
-                        isBlocked && "opacity-50 cursor-not-allowed"
+                        TASK_CIRCLE.base,
+                        TASK_CIRCLE.size,
+                        item.completed && TASK_CIRCLE.completed,
+                        pendingComplete && TASK_CIRCLE.pending,
+                        isBlocked && TASK_CIRCLE.blocked
                       )}
                       style={{
                         borderColor: (item.completed || pendingComplete) ? undefined : getPriorityColor(item.priority || 'none'),
@@ -538,15 +540,16 @@ export const TaskItem = memo(({
                       {(item.completed || pendingComplete) && (
                         <CheckIcon 
                           className={cn(
-                            "h-3.5 w-3.5 transition-all duration-200",
-                            pendingComplete && "animate-in zoom-in-50"
+                            TASK_CHECK_ICON.base,
+                            TASK_CHECK_ICON.size,
+                            pendingComplete && TASK_CHECK_ICON.pendingAnimation
                           )} 
                           style={{ 
                             color: pendingComplete 
-                              ? '#fff' 
-                              : 'hsl(var(--muted-foreground) / 0.5)'
+                              ? TASK_CHECK_ICON.pendingColor
+                              : TASK_CHECK_ICON.completedColor
                           }}
-                          strokeWidth={3}
+                          strokeWidth={TASK_CHECK_ICON.strokeWidth}
                         />
                       )}
                     </button>
