@@ -75,6 +75,13 @@ Add these entries inside the `<dict>` tag:
 <key>NSMicrophoneUsageDescription</key>
 <string>Npd needs access to your microphone to record voice notes.</string>
 
+<!-- Calendar Permissions (for system calendar sync) -->
+<key>NSCalendarsFullAccessUsageDescription</key>
+<string>Npd needs access to your calendar to sync your tasks and events with your device calendar.</string>
+
+<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+<string>Npd needs access to add tasks and events to your device calendar.</string>
+
 <!-- Location Permissions for Location-Based Reminders -->
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>Npd needs your location to remind you of tasks when you arrive at or leave specific places.</string>

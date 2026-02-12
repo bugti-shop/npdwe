@@ -61,6 +61,10 @@ This guide provides complete Android native code including:
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" />
     
+    <!-- Calendar (for system calendar sync) -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    
     <!-- Google Advertising ID for analytics & ads -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
@@ -449,6 +453,10 @@ Copy this complete ProGuard configuration to prevent code stripping issues in re
 # Native Biometric plugin
 -keep class capacitor.native.biometric.** { *; }
 -keep class com.anthropic.nativebiometric.** { *; }
+
+# Calendar plugin
+-keep class de.nicovince.capacitor.calendar.** { *; }
+-keep class com.ebarooni.capacitorcalendar.** { *; }
 
 # ==================== FIREBASE ====================
 -keep class com.google.firebase.** { *; }
