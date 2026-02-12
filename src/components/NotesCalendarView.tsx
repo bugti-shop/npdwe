@@ -142,6 +142,7 @@ export const NotesCalendarView = ({
       )}
       style={{
         background: backgroundGradient || undefined,
+        fontFamily: "'DM Sans', sans-serif",
       }}
     >
       {/* Header - Clean Month/Year with Navigation */}
