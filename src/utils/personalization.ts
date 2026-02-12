@@ -14,7 +14,7 @@ export const getPersonalizedRecommendations = (answers: OnboardingAnswers) => {
   const recommendations: string[] = [];
 
   if (answers[0] === 'work') {
-    recommendations.push('Use mind maps for meeting notes and project planning');
+    recommendations.push('Use structured notes for meeting notes and project planning');
   } else if (answers[0] === 'journal') {
     recommendations.push('Try lined notes for daily journaling and reflection');
   } else if (answers[0] === 'study') {
@@ -35,8 +35,8 @@ export const getPersonalizedRecommendations = (answers: OnboardingAnswers) => {
     recommendations.push('Quick capture with to-do lists for action items');
   } else if (answers[2] === 'voice') {
     recommendations.push('Use voice recordings to capture thoughts on the go');
-  } else if (answers[2] === 'sketches') {
-    recommendations.push('Mind maps are perfect for diagrams and visual thinking');
+  } else if (answers[2] === 'sketches' || answers[2] === 'tables') {
+    recommendations.push('Tables are perfect for structured data and comparisons');
   }
 
   if (answers[6] === 'habits') {
@@ -67,7 +67,7 @@ export const getSuggestedNoteTypes = (answers: OnboardingAnswers): NoteType[] =>
     types.push('regular');
   } else if (answers[2] === 'voice' && !types.includes('regular')) {
     types.push('regular');
-  } else if (answers[2] === 'sketches') {
+  } else if (answers[2] === 'sketches' || answers[2] === 'tables') {
     types.push('regular');
   }
 

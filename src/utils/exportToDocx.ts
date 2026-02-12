@@ -58,21 +58,6 @@ export const exportNoteToDocx = async (note: Note) => {
       }
       break;
 
-      // Try to export node texts if available
-      try {
-        const mindMapData = JSON.parse(note.content);
-        if (mindMapData.nodes) {
-          mindMapData.nodes.forEach((node: any) => {
-            sections.push(
-              new Paragraph({
-                children: [new TextRun({ text: `• ${node.text}` })],
-                spacing: { after: 100 },
-              })
-            );
-          });
-        }
-      } catch {}
-      break;
 
   }
 
