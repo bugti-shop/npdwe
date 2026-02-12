@@ -339,6 +339,8 @@ const TodoCalendar = () => {
       await setSetting('calendarEvents', updatedEvents);
       await scheduleEventNotification(newEvent);
     }
+    // Trigger system calendar sync
+    window.dispatchEvent(new CustomEvent('calendarEventsUpdated'));
   };
 
   const scheduleEventNotification = async (event: CalendarEvent) => {

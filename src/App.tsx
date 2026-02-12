@@ -1,5 +1,6 @@
 import { useEffect, useState, lazy, Suspense, startTransition } from "react";
 import { useAutoSync } from "@/hooks/useAutoSync";
+import { useSystemCalendarSync } from "@/hooks/useSystemCalendarSync";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -183,6 +184,9 @@ const AppContent = () => {
 
   // Auto-sync with Google Drive on app focus
   useAutoSync();
+
+  // Auto-sync with system calendar
+  useSystemCalendarSync();
 
   useEffect(() => {
     notificationManager.initialize().catch(console.error);
