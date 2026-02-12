@@ -64,8 +64,8 @@ export type PremiumFeature = typeof PREMIUM_FEATURES[number];
 
 // Free limits
 export const FREE_LIMITS = {
-  maxNoteFolders: 1,
-  maxTaskFolders: 1,
+  maxNoteFolders: 3,
+  maxTaskFolders: 3,
   maxTaskSections: 1,
 };
 
