@@ -1,51 +1,44 @@
-import { Note, TodoItem } from '@/types/note';
+// Sync conflict types and management
 
 export interface SyncConflict {
   id: string;
   type: 'note' | 'task';
-  localItem: Note | TodoItem;
-  remoteItem: Note | TodoItem;
+  localItem: any;
+  remoteItem: any;
   localUpdatedAt: Date;
   remoteUpdatedAt: Date;
-  detectedAt: Date;
+  detectedAt?: Date;
+  resolved?: boolean;
+  resolution?: 'local' | 'remote';
 }
 
-// In-memory store for unresolved conflicts
+type ConflictListener = (conflicts: SyncConflict[]) => void;
+const listeners: ConflictListener[] = [];
 let pendingConflicts: SyncConflict[] = [];
-const conflictListeners = new Set<(conflicts: SyncConflict[]) => void>();
-
-export const getPendingConflicts = (): SyncConflict[] => [...pendingConflicts];
-
-export const addConflict = (conflict: SyncConflict) => {
-  // Replace existing conflict for the same item
-  pendingConflicts = pendingConflicts.filter(c => c.id !== conflict.id);
-  pendingConflicts.push(conflict);
-  notifyConflictListeners();
-};
 
 export const addConflicts = (conflicts: SyncConflict[]) => {
-  const ids = new Set(conflicts.map(c => c.id));
-  pendingConflicts = pendingConflicts.filter(c => !ids.has(c.id));
-  pendingConflicts.push(...conflicts);
-  notifyConflictListeners();
+  pendingConflicts = [...pendingConflicts, ...conflicts];
+  listeners.forEach(fn => fn(pendingConflicts));
 };
 
-export const resolveConflict = (conflictId: string) => {
-  pendingConflicts = pendingConflicts.filter(c => c.id !== conflictId);
-  notifyConflictListeners();
+export const getPendingConflicts = (): SyncConflict[] => {
+  return pendingConflicts.filter(c => !c.resolved);
 };
 
-export const clearAllConflicts = () => {
-  pendingConflicts = [];
-  notifyConflictListeners();
+export const addConflictListener = (fn: ConflictListener): (() => void) => {
+  listeners.push(fn);
+  return () => {
+    const idx = listeners.indexOf(fn);
+    if (idx >= 0) listeners.splice(idx, 1);
+  };
 };
 
-export const addConflictListener = (listener: (conflicts: SyncConflict[]) => void): (() => void) => {
-  conflictListeners.add(listener);
-  return () => { conflictListeners.delete(listener); };
-};
-
-const notifyConflictListeners = () => {
-  const snapshot = [...pendingConflicts];
-  conflictListeners.forEach(fn => fn(snapshot));
+export const resolveConflict = (id: string, resolution?: 'local' | 'remote'): SyncConflict | undefined => {
+  const conflict = pendingConflicts.find(c => c.id === id);
+  if (conflict) {
+    conflict.resolved = true;
+    if (resolution) conflict.resolution = resolution;
+    listeners.forEach(fn => fn(pendingConflicts));
+  }
+  return conflict;
 };

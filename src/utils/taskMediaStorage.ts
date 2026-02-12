@@ -23,7 +23,7 @@ export interface TaskAttachment {
 }
 
 // LRU cache for resolved URLs with memory limit
-const cache = new LRUCache<string>(50);
+const cache = new LRUCache<string, string>(50);
 
 // Track pending saves to prevent duplicate operations
 const pendingSaves = new Set<string>();
