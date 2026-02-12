@@ -487,7 +487,7 @@ export const TaskItem = memo(({
               />
             )}
           
-          <div className="relative flex items-center flex-shrink-0 mt-0.5">
+          <div className="relative flex items-center flex-shrink-0 -mt-0.5">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
