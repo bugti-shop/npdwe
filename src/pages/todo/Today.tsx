@@ -1430,7 +1430,7 @@ const Today = () => {
               }}
               className={cn(
                 "flex-shrink-0 rounded-full border-2 flex items-center justify-center transition-all duration-300 mt-0.5",
-                compactMode ? "h-4 w-4" : "h-6 w-6",
+                compactMode ? "h-5 w-5" : "h-6 w-6",
                 item.completed && "border-0 bg-muted-foreground/30",
                 pendingCompleteId === item.id && "border-0 scale-110",
               )}
