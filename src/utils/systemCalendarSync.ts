@@ -60,9 +60,26 @@ export const checkCalendarPermissions = async (): Promise<boolean> => {
 // ─── Sync enable/disable setting ─────────────────────────────────
 const SYNC_ENABLED_KEY = 'systemCalendarSyncEnabled';
 const SYNC_MAP_KEY = 'systemCalendarSyncMap'; // maps app id → native event id
+const SYNC_STATUS_KEY = 'systemCalendarSyncStatus';
+
+export interface CalendarSyncStatus {
+  lastSyncedAt: string | null; // ISO date
+  pushed: number;
+  pulled: number;
+  totalSynced: number;
+  errors: string[];
+}
 
 export const isCalendarSyncEnabled = () => getSetting<boolean>(SYNC_ENABLED_KEY, false);
 export const setCalendarSyncEnabled = (v: boolean) => setSetting(SYNC_ENABLED_KEY, v);
+export const getCalendarSyncStatus = () => getSetting<CalendarSyncStatus>(SYNC_STATUS_KEY, {
+  lastSyncedAt: null, pushed: 0, pulled: 0, totalSynced: 0, errors: [],
+});
+
+const saveSyncStatus = (s: CalendarSyncStatus) => {
+  setSetting(SYNC_STATUS_KEY, s);
+  window.dispatchEvent(new CustomEvent('calendarSyncStatusUpdated'));
+};
 
 type SyncMap = Record<string, string>; // appId → nativeEventId
 const loadSyncMap = () => getSetting<SyncMap>(SYNC_MAP_KEY, {});
@@ -275,6 +292,16 @@ export const performFullCalendarSync = async (
     // Notify UI
     window.dispatchEvent(new CustomEvent('calendarEventsUpdated'));
   }
+
+  // ── Save sync status ──
+  const syncMap = await loadSyncMap();
+  await saveSyncStatus({
+    lastSyncedAt: new Date().toISOString(),
+    pushed: result.pushed,
+    pulled: result.pulled,
+    totalSynced: Object.keys(syncMap).length,
+    errors: result.errors,
+  });
 
   return result;
 };

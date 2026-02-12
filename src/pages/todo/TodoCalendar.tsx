@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { recordCompletion, TASK_STREAK_KEY } from '@/utils/streakStorage';
 
 import { NotesCalendarView } from '@/components/NotesCalendarView';
+import { CalendarSyncBadge } from '@/components/CalendarSyncBadge';
 import { Plus, ListTodo, CalendarDays, Clock, MapPin, Repeat, Trash2, Edit, MoreVertical, X, GripVertical, LayoutList, Columns3, GitBranch, Flag, ListChecks, ChevronRight, ChevronDown, TrendingUp, History, CheckCircle2, Circle, Loader2, Sun, AlertCircle, Crown } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Button } from '@/components/ui/button';
@@ -1095,6 +1096,11 @@ const TodoCalendar = () => {
           calendarBackground={calendarBackground}
           onBackgroundSettingsClick={() => setIsBackgroundSheetOpen(true)}
         />
+
+        {/* Calendar Sync Status */}
+        <div className="flex justify-end px-4 pt-2">
+          <CalendarSyncBadge />
+        </div>
 
         {/* Events and Tasks for selected date */}
         {date && hasItemsForDate && (
