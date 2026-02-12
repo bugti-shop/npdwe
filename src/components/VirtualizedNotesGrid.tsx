@@ -27,7 +27,7 @@ const getNoteColor = (note: Note): string => {
     sticky: 'hsl(48, 100%, 67%)',
     lined: 'hsl(210, 100%, 80%)',
     regular: 'hsl(145, 80%, 75%)',
-    sketch: 'hsl(280, 80%, 80%)',
+    
     code: 'hsl(35, 100%, 75%)',
   };
   

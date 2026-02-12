@@ -19,16 +19,8 @@ export interface CalendarEvent {
   updatedAt: Date;
 }
 
-export interface ExpenseEntry {
-  id: string;
-  date: string; // DD/MM/YYYY format
-  category: string; // Predefined or custom category
-  description: string;
-  amount: number;
-  paymentMethod: string; // Predefined or custom payment method
-  notes: string;
-  receiptId?: string; // Reference to receipt image in IndexedDB
-}
+
+
 
 export type Priority = 'high' | 'medium' | 'low' | 'none' | (string & {});
 export type RepeatType = 'none' | 'hourly' | 'daily' | 'weekly' | 'weekdays' | 'weekends' | 'monthly' | 'yearly' | 'custom';
