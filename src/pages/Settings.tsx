@@ -395,8 +395,7 @@ const Settings = () => {
             <SettingsRow label={<>{t('settings.noteTypeVisibility', 'Note Type Visibility')} {!isProSub && <Crown className="h-3.5 w-3.5 inline ml-1" style={{ color: '#3c78f0' }} />}</>} onClick={() => { if (requireFeature('notes_type_visibility')) setShowNoteTypeVisibilitySheet(true); }} />
             <SettingsRow label={<>{t('settings.notesSettings', 'Notes Settings')} {!isProSub && <Crown className="h-3.5 w-3.5 inline ml-1" style={{ color: '#3c78f0' }} />}</>} onClick={() => { if (requireFeature('notes_settings')) setShowNotesSettingsSheet(true); }} />
             <SettingsRow label={<>{t('settings.tasksSettings', 'Tasks Settings')} {!isProSub && <Crown className="h-3.5 w-3.5 inline ml-1" style={{ color: '#3c78f0' }} />}</>} onClick={() => { if (requireFeature('tasks_settings')) setShowTasksSettingsSheet(true); }} />
-            <SettingsRow label={t('settings.wordToolbarOrder', 'Word Toolbar Order')} onClick={() => toolbarOrder.openManager()} />
-            <SettingsRow label={t('settings.customizeNavigation', 'Customize Navigation')} onClick={() => setShowCustomizeNavigationSheet(true)} />
+            <SettingsRow label={<>{t('settings.customizeNavigation', 'Customize Navigation')} {!isProSub && <Crown className="h-3.5 w-3.5 inline ml-1" style={{ color: '#3c78f0' }} />}</>} onClick={() => { if (requireFeature('customize_navigation')) setShowCustomizeNavigationSheet(true); }} />
           </div>
 
           {/* Notifications Section */}

@@ -57,6 +57,7 @@ export const PREMIUM_FEATURES = [
   'extra_folders',
   'extra_sections',
   'file_attachments',
+  'customize_navigation',
 ] as const;
 
 export type PremiumFeature = typeof PREMIUM_FEATURES[number];
