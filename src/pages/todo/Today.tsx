@@ -1336,7 +1336,7 @@ const Today = () => {
                        setPendingCompleteId(null);
                        pendingCompleteTimer.current = null;
                        updateItem(item.id, { completed: true });
-                     }, 760);
+                      }, 400);
                    } else {
                      updateItem(item.id, { completed: false });
                    }
@@ -1427,7 +1427,7 @@ const Today = () => {
                   setPendingCompleteId(null);
                   pendingCompleteTimer.current = null;
                   updateItem(item.id, { completed: true });
-                }, 760);
+                }, 400);
               }}
               className={cn(
                 TASK_CIRCLE.base,
