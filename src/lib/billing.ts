@@ -18,8 +18,8 @@ export const BILLING_CONFIG = {
     offerId: 'npd-monthly-offer',
   },
   lifetime: {
-    productId: 'lifetime',
-    basePlanId: 'npd-lifetime-plan',
+    productId: 'npd_lv',
+    basePlanId: 'npd-lv',
     offerId: '',
   },
 } as const;
