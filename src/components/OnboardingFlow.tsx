@@ -410,7 +410,7 @@ export default function OnboardingFlow({
     // Hardcoded USD prices for display
     const weeklyPrice = '$2.99/wk';
     const monthlyPrice = '$5.99/mo';
-    const lifetimePrice = '$95.99';
+    const lifetimePrice = '$79.99';
     const weeklyTrialDays = 1;
 
     return (
