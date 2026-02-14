@@ -511,7 +511,7 @@ export default function OnboardingFlow({
                         ? PACKAGE_TYPE.MONTHLY 
                         : plan === 'weekly' 
                           ? PACKAGE_TYPE.WEEKLY 
-                          : PACKAGE_TYPE.ANNUAL;
+                          : PACKAGE_TYPE.LIFETIME;
                       let pkg = offerings.current.availablePackages.find(
                         p => p.packageType === packageType
                       );
