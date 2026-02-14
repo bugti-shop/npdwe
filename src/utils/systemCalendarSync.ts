@@ -12,6 +12,7 @@
  */
 
 import { Capacitor } from '@capacitor/core';
+import { CapacitorCalendar, CalendarPermissionScope } from '@ebarooni/capacitor-calendar';
 import { TodoItem, CalendarEvent as AppCalendarEvent } from '@/types/note';
 import { getSetting, setSetting } from './settingsStorage';
 
@@ -25,17 +26,11 @@ export interface SystemCalendarSyncResult {
 // ─── Guard: only run on native ──────────────────────────────────
 const isNative = () => Capacitor.isNativePlatform();
 
-// ─── Lazy import the plugin (avoids web crash) ──────────────────
-const getPlugin = async () => {
-  const mod = await import('@ebarooni/capacitor-calendar');
-  return mod.CapacitorCalendar;
-};
-
 // ─── Permissions ─────────────────────────────────────────────────
 export const requestCalendarPermissions = async (): Promise<boolean> => {
   if (!isNative()) return false;
   try {
-    const cal = await getPlugin();
+    const cal = CapacitorCalendar;
     const platform = Capacitor.getPlatform();
     
     if (platform === 'android') {
@@ -57,8 +52,7 @@ export const requestCalendarPermissions = async (): Promise<boolean> => {
 export const checkCalendarPermissions = async (): Promise<boolean> => {
   if (!isNative()) return false;
   try {
-    const { CalendarPermissionScope } = await import('@ebarooni/capacitor-calendar');
-    const cal = await getPlugin();
+    const cal = CapacitorCalendar;
     const read = await cal.checkPermission({ scope: CalendarPermissionScope.READ_CALENDAR });
     const write = await cal.checkPermission({ scope: CalendarPermissionScope.WRITE_CALENDAR });
     return read.result === 'granted' && write.result === 'granted';
@@ -112,7 +106,7 @@ const reminderToMinutes = (reminder?: string): number[] => {
 export const pushTaskToNativeCalendar = async (task: TodoItem): Promise<string | null> => {
   if (!isNative() || !task.dueDate) return null;
   try {
-    const cal = await getPlugin();
+    const cal = CapacitorCalendar;
     const syncMap = await loadSyncMap();
     const existingId = syncMap[task.id];
 
@@ -158,7 +152,7 @@ export const pushTaskToNativeCalendar = async (task: TodoItem): Promise<string |
 export const pushEventToNativeCalendar = async (event: AppCalendarEvent): Promise<string | null> => {
   if (!isNative()) return null;
   try {
-    const cal = await getPlugin();
+    const cal = CapacitorCalendar;
     const syncMap = await loadSyncMap();
     const existingId = syncMap[event.id];
 
@@ -198,7 +192,7 @@ export const pushEventToNativeCalendar = async (event: AppCalendarEvent): Promis
 export const removeFromNativeCalendar = async (appId: string): Promise<void> => {
   if (!isNative()) return;
   try {
-    const cal = await getPlugin();
+    const cal = CapacitorCalendar;
     const syncMap = await loadSyncMap();
     const nativeId = syncMap[appId];
     if (nativeId) {
@@ -218,7 +212,7 @@ export const pullFromNativeCalendar = async (
 ): Promise<AppCalendarEvent[]> => {
   if (!isNative()) return [];
   try {
-    const cal = await getPlugin();
+    const cal = CapacitorCalendar;
     const now = Date.now();
     const from = now - daysBehind * 24 * 60 * 60 * 1000;
     const to = now + daysAhead * 24 * 60 * 60 * 1000;
