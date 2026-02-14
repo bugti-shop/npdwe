@@ -24,7 +24,7 @@ const ENTITLEMENT_ID = 'npd Pro';
 const PRODUCT_IDS = {
   weekly: 'npd_wk',
   monthly: 'monthly',
-  yearly: 'yearly',
+  lifetime: 'npd_lv',
 } as const;
 
 export type ProductType = keyof typeof PRODUCT_IDS;
@@ -240,7 +240,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       let packageType;
       if (productType === 'weekly') packageType = PACKAGE_TYPE.WEEKLY;
       else if (productType === 'monthly') packageType = PACKAGE_TYPE.MONTHLY;
-      else packageType = PACKAGE_TYPE.ANNUAL;
+      else packageType = PACKAGE_TYPE.LIFETIME;
 
       const pkg = currentOfferings.current.availablePackages.find(p => p.packageType === packageType)
         || currentOfferings.current.availablePackages.find(p => p.identifier === PRODUCT_IDS[productType]);
