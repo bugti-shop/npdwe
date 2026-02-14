@@ -36,8 +36,18 @@ export const requestCalendarPermissions = async (): Promise<boolean> => {
   if (!isNative()) return false;
   try {
     const cal = await getPlugin();
-    const { result } = await cal.requestFullCalendarAccess();
-    return result === 'granted';
+    const platform = Capacitor.getPlatform();
+    
+    if (platform === 'android') {
+      // On Android, request read and write separately to avoid "not implemented" errors
+      const read = await cal.requestReadOnlyCalendarAccess();
+      const write = await cal.requestWriteOnlyCalendarAccess();
+      return read.result === 'granted' && write.result === 'granted';
+    } else {
+      // iOS supports requestFullCalendarAccess
+      const { result } = await cal.requestFullCalendarAccess();
+      return result === 'granted';
+    }
   } catch (e) {
     console.error('Calendar permission error:', e);
     return false;
