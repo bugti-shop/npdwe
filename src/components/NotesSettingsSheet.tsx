@@ -68,11 +68,11 @@ const DEFAULT_NOTES_SETTINGS: NotesSettings = {
     highlightColor: 'transparent',
   },
   startNotesIn: 'title',
-  spellCheck: true,
+  spellCheck: false,
   smartDetection: {
-    urls: true,
-    phoneNumbers: true,
-    emailAddresses: true,
+    urls: false,
+    phoneNumbers: false,
+    emailAddresses: false,
   },
 };
 
