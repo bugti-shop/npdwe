@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
-import { Home, Calendar, Settings, BarChart3, User, ClipboardList, History, CalendarDays, CalendarRange } from 'lucide-react';
+import { Home, Calendar, Settings, BarChart3, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { triggerHaptic } from '@/utils/haptics';
@@ -26,10 +26,6 @@ const ICON_COMPONENTS: Record<string, React.ComponentType<{ className?: string }
   User,
   Calendar,
   Settings,
-  ClipboardList,
-  History,
-  CalendarDays,
-  CalendarRange,
 };
 
 export const DEFAULT_TODO_NAV_ITEMS: TodoNavItem[] = [
@@ -38,8 +34,6 @@ export const DEFAULT_TODO_NAV_ITEMS: TodoNavItem[] = [
   { id: 'profile', label: 'Profile', icon: 'User', path: '/profile', visible: true },
   { id: 'calendar', label: 'Calendar', icon: 'Calendar', path: '/todo/calendar', visible: true },
   { id: 'settings', label: 'Settings', icon: 'Settings', path: '/todo/settings', visible: true },
-  { id: 'today', label: 'Today', icon: 'CalendarDays', path: '/todo/today-view', visible: false },
-  { id: 'upcoming', label: 'Upcoming', icon: 'CalendarRange', path: '/todo/upcoming', visible: false },
 ];
 
 

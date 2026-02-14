@@ -41,10 +41,6 @@ import TodoSettings from "./pages/todo/TodoSettings";
 // Lazy load less-frequently accessed pages
 const WebClipper = lazy(() => import("./pages/WebClipper"));
 const Reminders = lazy(() => import("./pages/Reminders"));
-const Upcoming = lazy(() => import("./pages/todo/Upcoming"));
-const CustomToolDetail = lazy(() => import("./pages/todo/CustomToolDetail"));
-const WeeklyReview = lazy(() => import("./pages/todo/WeeklyReview"));
-const TaskHistory = lazy(() => import("./pages/todo/TaskHistory"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -161,12 +157,8 @@ const AppRoutes = () => {
             <Route path="/reminders" element={<Reminders />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/todo/today" element={<Today />} />
-            <Route path="/todo/upcoming" element={<Upcoming />} />
             <Route path="/todo/calendar" element={<TodoCalendar />} />
             <Route path="/todo/settings" element={<TodoSettings />} />
-            <Route path="/todo/tool/:toolId" element={<CustomToolDetail />} />
-            <Route path="/todo/weekly-review" element={<WeeklyReview />} />
-            <Route path="/todo/history" element={<TaskHistory />} />
             <Route path="/todo/progress" element={<Progress />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
